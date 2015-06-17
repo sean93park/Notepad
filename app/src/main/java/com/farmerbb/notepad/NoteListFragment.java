@@ -1,4 +1,5 @@
 /* Copyright 2014 Braden Farmer
+ * Copyright 2015 Sean93Park
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +49,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 
 public class NoteListFragment extends Fragment {
 
@@ -72,6 +74,7 @@ public class NoteListFragment extends Fragment {
         void exportNote(Object[] filesToExport);
         void deleteNote(Object[] filesToDelete);
         String loadNoteTitle(String filename) throws IOException;
+        String loadNoteDate(String filename) throws IOException;
         void showFab();
         void hideFab();
     }
@@ -273,10 +276,10 @@ public class NoteListFragment extends Fragment {
         String[] listOfNotesByDate = getListOfNotes(getActivity().getFilesDir());
         String[] listOfNotesByName = new String[numOfFiles];
 
-        String[] listOfTitlesByDate = new String[numOfFiles];
-        String[] listOfTitlesByName = new String[numOfFiles];
+        NoteListItem[] listOfTitlesByDate = new NoteListItem[numOfFiles];
+        NoteListItem[] listOfTitlesByName = new NoteListItem[numOfFiles];
 
-        ArrayList<String> list = new ArrayList<>(numOfFiles);
+        ArrayList<NoteListItem> list = new ArrayList<>(numOfFiles);
 
         // If sort-by is "by date", sort in reverse order
         if(sortBy.equals("date"))
@@ -285,7 +288,9 @@ public class NoteListFragment extends Fragment {
         // Get array of first lines of each note
         for(int i = 0; i < numOfFiles; i++) {
             try {
-                listOfTitlesByDate[i] = listener.loadNoteTitle(listOfNotesByDate[i]);
+                String title = listener.loadNoteTitle(listOfNotesByDate[i]);
+                String date = listener.loadNoteDate(listOfNotesByDate[i]);
+                listOfTitlesByDate[i] = new NoteListItem(title, date);
             } catch (IOException e) {
                 showToast(R.string.error_loading_list);
             }
@@ -297,7 +302,7 @@ public class NoteListFragment extends Fragment {
             System.arraycopy(listOfTitlesByDate, 0, listOfTitlesByName, 0, numOfFiles);
 
             // Sort titles
-            Arrays.sort(listOfTitlesByName);
+            Arrays.sort(listOfTitlesByName, NoteListItem.NoteComparatorTitle);
 
             // Initialize notes array
             for(int i = 0; i < numOfFiles; i++)
@@ -306,10 +311,10 @@ public class NoteListFragment extends Fragment {
             // Copy filenames array with new sort order of titles and nullify date arrays
             for(int i = 0; i < numOfFiles; i++) {
                 for(int j = 0; j < numOfFiles; j++) {
-                    if(listOfTitlesByName[i].equals(listOfTitlesByDate[j]) && listOfNotesByName[i].equals("new")) {
+                    if(listOfTitlesByName[i].getNote().equals(listOfTitlesByDate[j].getNote())
+                       && listOfNotesByName[i].equals("new")) {
                         listOfNotesByName[i] = listOfNotesByDate[j];
                         listOfNotesByDate[j] = "";
-                        listOfTitlesByDate[j] = "";
                     }
                 }
             }
